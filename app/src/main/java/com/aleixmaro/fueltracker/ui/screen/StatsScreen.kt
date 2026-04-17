@@ -42,9 +42,11 @@ fun StatsScreen(
     val filteredStats = if (selectedYear.value == "Todos") {
         refuelStats
     } else {
+        val targetYear = selectedYear.value.toInt()
         refuelStats.filter { stat ->
-            val year = stat.fromDate.toLocalYear()
-            year.toString() == selectedYear.value
+            val fromYear = stat.fromDate.toLocalYear()
+            val toYear = stat.toDate.toLocalYear()
+            fromYear <= targetYear && toYear >= targetYear
         }
     }
 
