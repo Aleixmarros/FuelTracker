@@ -9,6 +9,7 @@ import com.aleixmaro.fueltracker.ui.screen.HomeScreen
 import com.aleixmaro.fueltracker.ui.screen.StatsScreen
 import com.aleixmaro.fueltracker.ui.viewmodel.RefuelViewModel
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.aleixmaro.fueltracker.ui.viewmodel.StatsViewModel
@@ -29,6 +30,7 @@ fun AppNavGraph(
             HomeScreen(
                 viewModel = viewModel,
                 onAddRefuelClick = {
+                    viewModel.clearEditing()
                     navController.navigate(Routes.ADD_REFUEL)
                 },
                 onStatsClick = {
@@ -68,10 +70,15 @@ fun AppNavGraph(
                 viewModel.loadRefuelForEdit(id)
             }
 
+            DisposableEffect(Unit) {
+                onDispose {
+                    viewModel.clearEditing()
+                }
+            }
+
             AddRefuelScreen(
                 viewModel = viewModel,
                 onBack = {
-                    viewModel.clearEditing()
                     navController.popBackStack()
                 }
             )

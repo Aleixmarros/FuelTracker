@@ -42,7 +42,8 @@ fun AddRefuelScreen(
 
     val editingRefuel by viewModel.editingRefuel.collectAsState()
     LaunchedEffect(editingRefuel) {
-        editingRefuel?.let {
+        if (editingRefuel != null) {
+            val it = editingRefuel!!
             dinero = it.dinero.toString()
             precio = it.precioGasolina.toString()
             litros = it.litros.toString()
@@ -50,6 +51,13 @@ fun AddRefuelScreen(
             selectedDate = Instant.ofEpochMilli(it.fecha)
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate()
+            fechaText = selectedDate.format(dateFormatter)
+        } else {
+            dinero = ""
+            precio = ""
+            litros = ""
+            km = ""
+            selectedDate = LocalDate.now()
             fechaText = selectedDate.format(dateFormatter)
         }
     }
