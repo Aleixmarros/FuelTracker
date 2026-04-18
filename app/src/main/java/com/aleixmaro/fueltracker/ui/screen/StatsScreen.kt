@@ -268,9 +268,38 @@ fun StatsCard(
  *  CELDA DE DATO
  *  ======================= */
 @Composable
-fun RowScope.StatGridItem(label: String, value: String, icon: ImageVector) {
+fun RowScope.StatGridItem(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    separator: String? = null,
+    secondaryIcon: ImageVector? = null
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            if (separator != null) {
+                Text(
+                    text = separator,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
+            }
+            if (secondaryIcon != null) {
+                Icon(
+                    secondaryIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
         Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
