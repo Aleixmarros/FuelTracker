@@ -1,24 +1,61 @@
 package com.aleixmaro.fueltracker.ui.screen
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.EuroSymbol
+import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.unit.dp
-import com.aleixmaro.fueltracker.ui.util.formatDate
-import com.aleixmaro.fueltracker.ui.viewmodel.RefuelViewModel
-import com.aleixmaro.fueltracker.ui.viewmodel.StatsViewModel
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.aleixmaro.fueltracker.data.local.entity.RefuelStats
 import com.aleixmaro.fueltracker.ui.theme.getConsumptionColor
+import com.aleixmaro.fueltracker.ui.util.formatDate
+import com.aleixmaro.fueltracker.ui.viewmodel.StatsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,101 +69,121 @@ fun StatsScreen(
 
     // Estados del dropdown
     var expanded by remember { mutableStateOf(false) }
-    var selectedYear = remember { mutableStateOf("Todos") }
+    var selectedYear by remember { mutableStateOf("Todos") }
 
-
-    // Lista de años del 2025 al 2035
-    val years = (2025..2035).map { it.toString() }
+    // Lista de años del 2025 al 2125
+    val years = (2025..2125).map { it.toString() }
 
     // Filtrado de intervalos por año
-    val filteredStats = if (selectedYear.value == "Todos") {
+    val filteredStats = if (selectedYear == "Todos") {
         refuelStats
     } else {
-        val targetYear = selectedYear.value.toInt()
+        val targetYear = selectedYear.toInt()
         refuelStats.filter { stat ->
             val fromYear = stat.fromDate.toLocalYear()
             val toYear = stat.toDate.toLocalYear()
-            fromYear <= targetYear && toYear >= targetYear
+            targetYear in fromYear..toYear
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Estadísticas") },
+                title = { Text("Estadísticas", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh 
     ) { padding ->
 
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
             /** =======================
              *  RESUMEN MEDIO GLOBAL
              *  ======================= */
             item {
-                StatsSection(title = "Resumen medio global") {
-                    StatRow(
-                        "Consumo medio",
-                        "%.2f L/100km".format(averages.avgConsumption)
+                StatsCard(
+                    title = "Resumen medio global",
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    gradient = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
+                        )
                     )
-                    StatRow(
-                        "Kilómetros al mes",
-                        "%.2f km".format(averages.avgKmPerMonth)
-                    )
-                    StatRow(
-                        "Gasto mensual",
-                        "%.2f €".format(averages.avgEuroPerMonth)
-                    )
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        StatGridItem("Consumo medio", "%.2f L/100".format(averages.avgConsumption), Icons.Default.LocalGasStation)
+                        StatGridItem("Km/mes", "%.0f km".format(averages.avgKmPerMonth), Icons.Default.DirectionsCar)
+                        StatGridItem("Gasto/mes", "%.2f €".format(averages.avgEuroPerMonth), Icons.Default.EuroSymbol)
+                    }
                 }
             }
-
-            item { Divider() }
 
             /** =======================
              *  RESUMEN DE TOTALES
              *  ======================= */
             item {
-                StatsSection(title = "Totales") {
-                    StatRow("Kilómetros recorridos", "${totals.totalKm} km")
-                    StatRow("€ invertidos", "%.2f €".format(totals.totalEuros))
-                    StatRow("Litros consumidos", "%.2f L".format(totals.totalLiters))
-                    StatRow("Total de días", "${totals.totalDays} días")
-                    StatRow(
-                        "Precio medio del litro",
-                        "%.3f €/L".format(totals.avgLiterPrice)
+                StatsCard(
+                    title = "Resumen histórico",
+                    icon = Icons.Default.CalendarMonth,
+                    gradient = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
                     )
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            StatGridItem("Km recorridos", "${totals.totalKm} km", Icons.Default.DirectionsCar)
+                            StatGridItem("Invertido", "%.2f €".format(totals.totalEuros), Icons.Default.EuroSymbol)
+                            StatGridItem("Litros", "%.1f L".format(totals.totalLiters), Icons.Default.LocalGasStation)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                            StatGridItem("Total días", "${totals.totalDays} d", Icons.Default.CalendarMonth)
+                            StatGridItem("Precio/L", "%.3f €".format(totals.avgLiterPrice), Icons.Default.LocalGasStation,"/",Icons.Default.EuroSymbol)
+                        }
+                    }
                 }
             }
 
-            item { Divider() }
-
-            // =======================
-// DETALLE POR INTERVALO CON FILTRO
-// =======================
+            /** =======================
+             *  DETALLE POR INTERVALO CON FILTRO
+             *  ======================= */
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = "Detalle por intervalo",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                     )
                     Box {
-                        TextButton(onClick = { expanded = true }) {
-                            Text(selectedYear.value)
-                        }
+                        AssistChip(
+                            onClick = { expanded = true },
+                            label = { Text(selectedYear) },
+                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        )
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
@@ -134,7 +191,7 @@ fun StatsScreen(
                             DropdownMenuItem(
                                 text = { Text("Todos") },
                                 onClick = {
-                                    selectedYear.value = "Todos"
+                                    selectedYear = "Todos"
                                     expanded = false
                                 }
                             )
@@ -142,7 +199,7 @@ fun StatsScreen(
                                 DropdownMenuItem(
                                     text = { Text(year) },
                                     onClick = {
-                                        selectedYear.value = year
+                                        selectedYear = year
                                         expanded = false
                                     }
                                 )
@@ -150,99 +207,146 @@ fun StatsScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
 // Mostrar intervalos filtrados o mensaje si no hay
             if (filteredStats.isEmpty()) {
                 item {
-                    Text(
-                        "No hay intervalos para este año",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Sin datos para $selectedYear",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 items(filteredStats) { stat ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = getConsumptionColor(stat.consumption)
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                "${formatDate(stat.fromDate)} → ${formatDate(stat.toDate)}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Text("${stat.km} km • ${stat.days} días")
-
-                            Text(
-                                "Litros: %.2f L — € %.2f".format(
-                                    stat.liters,
-                                    stat.euros
-                                )
-                            )
-
-                            Text(
-                                "Consumo: %.2f L/100km".format(stat.consumption)
-                            )
-
-                            Text(
-                                "KM/mes: %.2f — Gasto/mes: %.2f €".format(
-                                    stat.kmPerMonth,
-                                    stat.euroPerMonth
-                                )
-                            )
-                        }
-                    }
+                    IntervalCard(stat)
                 }
             }
         }
-        }
-}
-    // Extensión para convertir timestamp Long a año
-    fun Long.toLocalYear(): Int {
-        val calendar = java.util.Calendar.getInstance()
-        calendar.timeInMillis = this
-        return calendar.get(java.util.Calendar.YEAR)
     }
+}
 
-    @Composable
-    fun StatsSection(
-        title: String,
-        content: @Composable ColumnScope.() -> Unit
+/** =======================
+ *  TARJETA DE RESUMEN
+ *  ======================= */
+@Composable
+fun StatsCard(
+    title: String,
+    icon: ImageVector,
+    gradient: Brush,
+    content: @Composable RowScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp)
+                .background(gradient)
+                .padding(20.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                content = content
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            content()
         }
     }
+}
 
-    @Composable
-    fun StatRow(label: String, value: String) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(label)
-            Text(value, style = MaterialTheme.typography.bodyMedium)
+/** =======================
+ *  CELDA DE DATO
+ *  ======================= */
+@Composable
+fun RowScope.StatGridItem(label: String, value: String, icon: ImageVector) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** =======================
+ *  TARJETA DE INTERVALO
+ *  ======================= */
+@Composable
+fun IntervalCard(stat: RefuelStats) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = getConsumptionColor(stat.consumption).copy(alpha = 0.15f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "${formatDate(stat.fromDate)} - ${formatDate(stat.toDate)}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Badge(
+                    containerColor = getConsumptionColor(stat.consumption),
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Text("%.2f L/100".format(stat.consumption), modifier = Modifier.padding(4.dp))
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("${stat.km} km", fontWeight = FontWeight.Bold)
+                    Text("${stat.days} días", style = MaterialTheme.typography.bodySmall)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("%.2f €".format(stat.euros), fontWeight = FontWeight.Bold)
+                    Text("%.2f L".format(stat.liters), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+            )
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "KM/mes: %.0f".format(stat.kmPerMonth),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "Gasto/mes: %.2f €".format(stat.euroPerMonth),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
+}
+// Helper para obtener el año de un timestamp
+fun Long.toLocalYear(): Int {
+    val calendar = java.util.Calendar.getInstance()
+    calendar.timeInMillis = this
+    return calendar.get(java.util.Calendar.YEAR)
+}
 

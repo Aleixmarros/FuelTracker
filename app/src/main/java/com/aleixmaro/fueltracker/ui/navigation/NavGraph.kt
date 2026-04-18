@@ -14,6 +14,11 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.aleixmaro.fueltracker.ui.viewmodel.StatsViewModel
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import com.aleixmaro.fueltracker.ui.screen.SplashScreen
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
@@ -21,68 +26,123 @@ fun AppNavGraph(
     statsViewModel: StatsViewModel
 
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Routes.HOME
-    ) {
+    SharedTransitionLayout {
+        NavHost(
+            navController = navController,
+            startDestination = Routes.SPLASH
+        ) {
 
-        composable(Routes.HOME) {
-            HomeScreen(
-                viewModel = viewModel,
-                onAddRefuelClick = {
-                    viewModel.clearEditing()
-                    navController.navigate(Routes.ADD_REFUEL)
-                },
-                onStatsClick = {
-                    navController.navigate(Routes.STATS)
-                },
-                onItemClick = { id ->
-                    navController.navigate("edit_refuel/$id")
-                }
-            )
-        }
-
-        composable(Routes.ADD_REFUEL) {
-            AddRefuelScreen(
-                viewModel = viewModel,
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        composable(Routes.STATS) {
-            StatsScreen(
-                statsViewModel = statsViewModel,
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        composable(
-            route = Routes.EDIT_REFUEL,
-            arguments = listOf(navArgument("id") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getLong("id") ?: return@composable
-
-            LaunchedEffect(id) {
-                viewModel.loadRefuelForEdit(id)
+            composable(Routes.SPLASH) {
+                SplashScreen(
+                    animatedVisibilityScope = this,
+                    onAnimationFinished = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
+                    }
+                )
             }
 
-            DisposableEffect(Unit) {
-                onDispose {
-                    viewModel.clearEditing()
-                }
+            composable(Routes.HOME) {
+                HomeScreen(
+                    viewModel = viewModel,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this,
+                    onAddRefuelClick = {
+                        viewModel.clearEditing()
+                        navController.navigate(Routes.ADD_REFUEL)
+                    },
+                    onStatsClick = {
+                        navController.navigate(Routes.STATS)
+                    },
+                    onItemClick = { id ->
+                        navController.navigate("edit_refuel/$id")
+                    }
+                )
             }
 
-            AddRefuelScreen(
-                viewModel = viewModel,
-                onBack = {
-                    navController.popBackStack()
+            composable(
+                route = Routes.ADD_REFUEL,
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = androidx.compose.animation.core.tween(500)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = androidx.compose.animation.core.tween(500)
+                    )
                 }
-            )
-        }
+            ) {
+                AddRefuelScreen(
+                    viewModel = viewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
 
+            composable(
+                route = Routes.STATS,
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = androidx.compose.animation.core.tween(500)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = androidx.compose.animation.core.tween(500)
+                    )
+                }
+            ) {
+                StatsScreen(
+                    statsViewModel = statsViewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.EDIT_REFUEL,
+                arguments = listOf(navArgument("id") { type = NavType.LongType }),
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = androidx.compose.animation.core.tween(500)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = androidx.compose.animation.core.tween(500)
+                    )
+                }
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getLong("id") ?: return@composable
+
+                LaunchedEffect(id) {
+                    viewModel.loadRefuelForEdit(id)
+                }
+
+                DisposableEffect(Unit) {
+                    onDispose {
+                        viewModel.clearEditing()
+                    }
+                }
+
+                AddRefuelScreen(
+                    viewModel = viewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+        }
     }
 }

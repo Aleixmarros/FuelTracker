@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.*
 import kotlin.math.max
 
 class StatsViewModel(
-    private val repository: RefuelRepository
+    repository: RefuelRepository
 ) : ViewModel() {
 
     private val refuelsFlow: StateFlow<List<RefuelEntity>> =
@@ -59,7 +59,7 @@ class StatsViewModel(
     // LÓGICA DE NEGOCIO
     // ─────────────────────────────
     private fun calculateGlobalStats(
-        list: List<com.aleixmaro.fueltracker.data.local.entity.RefuelEntity>
+        list: List<RefuelEntity>
     ): GlobalStats {
 
         if (list.size < 2) return emptyStats()

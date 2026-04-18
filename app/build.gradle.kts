@@ -17,7 +17,7 @@ android {
         minSdk = 34
         targetSdk = 36
         versionCode = 1
-        versionName = "0.0.1"
+        versionName = "0.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -72,6 +72,9 @@ dependencies {
 
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.8.3")
+
+    // Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended")
 
     // ROOM
     implementation("androidx.room:room-runtime:2.6.1")

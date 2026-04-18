@@ -16,6 +16,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.aleixmaro.fueltracker.ui.viewmodel.RefuelViewModel
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,11 +29,9 @@ fun AddRefuelScreen(
     var precio by remember { mutableStateOf("") }
     var litros by remember { mutableStateOf("") }
     var km by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     var fechaText by remember {
-        mutableStateOf(selectedDate.format(dateFormatter))
+        mutableStateOf(LocalDate.now().format(dateFormatter))
     }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -41,6 +40,8 @@ fun AddRefuelScreen(
     )
 
     val editingRefuel by viewModel.editingRefuel.collectAsState()
+    val titleText = if (editingRefuel != null) "Editar Repostaje" else "Nuevo Repostaje"
+
     LaunchedEffect(editingRefuel) {
         if (editingRefuel != null) {
             val it = editingRefuel!!
@@ -48,17 +49,16 @@ fun AddRefuelScreen(
             precio = it.precioGasolina.toString()
             litros = it.litros.toString()
             km = it.kmCoche.toString()
-            selectedDate = Instant.ofEpochMilli(it.fecha)
+            fechaText = Instant.ofEpochMilli(it.fecha)
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate()
-            fechaText = selectedDate.format(dateFormatter)
+                .format(dateFormatter)
         } else {
             dinero = ""
             precio = ""
             litros = ""
             km = ""
-            selectedDate = LocalDate.now()
-            fechaText = selectedDate.format(dateFormatter)
+            fechaText = LocalDate.now().format(dateFormatter)
         }
     }
 
@@ -70,7 +70,23 @@ fun AddRefuelScreen(
                 km.isNotBlank() &&
                 fechaText.isNotBlank()
 
-    Scaffold { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(titleText), fontWeight = FontWeight.Bold },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -79,12 +95,6 @@ fun AddRefuelScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            Text(
-                text = "Nuevo Repostaje",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Spacer(modifier = Modifier.height(25.dp))
 
             // DINERO
             OutlinedTextField(
@@ -189,11 +199,11 @@ fun AddRefuelScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        selectedDate = Instant.ofEpochMilli(millis)
+                        val date = Instant.ofEpochMilli(millis)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDate()
 
-                        fechaText = selectedDate.format(dateFormatter)
+                        fechaText = date.format(dateFormatter)
                     }
                     showDatePicker = false
                 }) {
