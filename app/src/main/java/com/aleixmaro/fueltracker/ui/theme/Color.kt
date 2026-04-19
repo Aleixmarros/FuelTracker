@@ -37,3 +37,19 @@ fun getConsumptionColor(consumption: Double): Color {
         else -> Color(0xFFFF0000)                      // Rojo
     }
 }
+
+fun getPriceColor(currentPrice: Double, avgPrice: Double): Color {
+    if (avgPrice <= 0.0) return Color(0xFF00AA00) // Verde por defecto si no hay media
+    
+    val diff = (currentPrice - avgPrice) / avgPrice
+    
+    return when {
+        diff < -0.10 -> Color(0xFF00FF00)         // Muy barato (-10%)
+        diff < -0.05 -> Color(0xFF00AA00)         // Barato (-5%)
+        diff < -0.02 -> Color(0xFF007700)         // Ligera rebaja (-2%)
+        diff in -0.02..0.02 -> Color(0xFFCCC000)  // Media
+        diff <= 0.05 -> Color(0xFFFF8800)        // Un poco caro (+5%)
+        diff <= 0.10 -> Color(0xFFFF4400)        // Caro (+10%)
+        else -> Color(0xFFFF0000)                 // Muy caro (>10%)
+    }
+}
