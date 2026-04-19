@@ -35,7 +35,7 @@ fun AddRefuelScreen(
         mutableStateOf(LocalDate.now().format(dateFormatter))
     }
 
-    var showDatePicker by remember { mutableStateOf(false) }
+    val showDatePicker = remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = System.currentTimeMillis()
     )
@@ -60,6 +60,17 @@ fun AddRefuelScreen(
             litros = ""
             km = ""
             fechaText = LocalDate.now().format(dateFormatter)
+        }
+    }
+
+    // Predictor de litros
+    LaunchedEffect(dinero, precio) {
+        val d = dinero.replace(",", ".").toDoubleOrNull()
+        val p = precio.replace(",", ".").toDoubleOrNull()
+        if (d != null && p != null && p > 0) {
+            val res = d / p
+            // Formatear a 2 decimales con punto
+            litros = "%.2f".format(java.util.Locale.US, res)
         }
     }
 
@@ -148,7 +159,7 @@ fun AddRefuelScreen(
                 label = { Text("Fecha (DD/MM/YYYY)") },
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
+                    IconButton(onClick = { showDatePicker.value = true }) {
                         Icon(Icons.Filled.DateRange, contentDescription = "Calendario")
                     }
                 }
@@ -194,9 +205,9 @@ fun AddRefuelScreen(
         }
     }
     // ───── DIALOGO (FUERA DEL SCAFFOLD, DENTRO DEL COMPOSABLE) ─────
-    if (showDatePicker) {
+    if (showDatePicker.value) {
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showDatePicker.value = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
@@ -206,13 +217,13 @@ fun AddRefuelScreen(
 
                         fechaText = date.format(dateFormatter)
                     }
-                    showDatePicker = false
+                    showDatePicker.value = false
                 }) {
                     Text("Aceptar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { showDatePicker.value = false }) {
                     Text("Cancelar")
                 }
             }

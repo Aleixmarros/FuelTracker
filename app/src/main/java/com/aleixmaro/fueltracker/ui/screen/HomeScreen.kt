@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.aleixmaro.fueltracker.ui.util.formatDate
 import com.aleixmaro.fueltracker.ui.util.formatLiters
 import com.aleixmaro.fueltracker.ui.util.formatMoney
-import com.aleixmaro.fueltracker.data.local.entity.RefuelEntity
 import com.aleixmaro.fueltracker.ui.viewmodel.RefuelViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
