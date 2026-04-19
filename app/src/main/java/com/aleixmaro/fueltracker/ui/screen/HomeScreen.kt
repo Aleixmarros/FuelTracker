@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.aleixmaro.fueltracker.ui.util.formatDate
 import com.aleixmaro.fueltracker.ui.util.formatLiters
 import com.aleixmaro.fueltracker.ui.util.formatMoney
+import com.aleixmaro.fueltracker.data.local.entity.RefuelEntity
 import com.aleixmaro.fueltracker.ui.viewmodel.RefuelViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -54,7 +56,7 @@ fun HomeScreen(
     onItemClick: (Long) -> Unit
 
 ) {
-    val refuels = viewModel.refuelList.collectAsState(initial = emptyList())
+    val refuels by viewModel.refuelList.collectAsState()
 
     Scaffold(
         topBar = {
@@ -108,7 +110,10 @@ fun HomeScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            if (refuels.value.isEmpty()) {
+            val currentRefuels = refuels
+            if (currentRefuels == null) {
+                // Estado de carga inicial: no mostramos nada para evitar el parpadeo del mensaje "Todavia no hay repostajes"
+            } else if (currentRefuels.isEmpty()) {
                 EmptyState(
                     modifier = Modifier
                         .fillMaxSize()
@@ -118,7 +123,7 @@ fun HomeScreen(
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
-                    items(refuels.value) { item ->
+                    items(currentRefuels) { item ->
                         ListItem(
                             modifier = Modifier.clickable {
                                 onItemClick(item.id)

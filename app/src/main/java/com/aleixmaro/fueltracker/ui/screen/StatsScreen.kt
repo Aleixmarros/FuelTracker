@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.aleixmaro.fueltracker.data.local.entity.RefuelStats
 import com.aleixmaro.fueltracker.ui.theme.getConsumptionColor
 import com.aleixmaro.fueltracker.ui.util.formatDate
+import com.aleixmaro.fueltracker.ui.util.toLocalYear
 import com.aleixmaro.fueltracker.ui.viewmodel.StatsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,12 +70,12 @@ fun StatsScreen(
 
     // Estados del dropdown
     var expanded by remember { mutableStateOf(false) }
-    var selectedYear by remember { mutableStateOf("Todos") }
+    val selectedYear by statsViewModel.selectedYear.collectAsState()
 
     // Lista de años del 2025 al 2125
     val years = (2025..2125).map { it.toString() }
 
-    // Filtrado de intervalos por año
+    // Filtrado de intervalos por año (para la lista)
     val filteredStats = if (selectedYear == "Todos") {
         refuelStats
     } else {
@@ -85,6 +86,8 @@ fun StatsScreen(
             targetYear in fromYear..toYear
         }
     }
+
+    val yearSuffix = if (selectedYear == "Todos") "" else " $selectedYear"
 
     Scaffold(
         topBar = {
@@ -117,7 +120,7 @@ fun StatsScreen(
              *  ======================= */
             item {
                 StatsCard(
-                    title = "Resumen medio global",
+                    title = "Resumen medio global$yearSuffix",
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
                     gradient = Brush.linearGradient(
                         colors = listOf(
@@ -139,7 +142,7 @@ fun StatsScreen(
              *  ======================= */
             item {
                 StatsCard(
-                    title = "Resumen histórico",
+                    title = "Resumen histórico$yearSuffix",
                     icon = Icons.Default.CalendarMonth,
                     gradient = Brush.linearGradient(
                         colors = listOf(
@@ -191,7 +194,7 @@ fun StatsScreen(
                             DropdownMenuItem(
                                 text = { Text("Todos") },
                                 onClick = {
-                                    selectedYear = "Todos"
+                                    statsViewModel.updateYearFilter("Todos")
                                     expanded = false
                                 }
                             )
@@ -199,7 +202,7 @@ fun StatsScreen(
                                 DropdownMenuItem(
                                     text = { Text(year) },
                                     onClick = {
-                                        selectedYear = year
+                                        statsViewModel.updateYearFilter(year)
                                         expanded = false
                                     }
                                 )
@@ -371,11 +374,5 @@ fun IntervalCard(stat: RefuelStats) {
             }
         }
     }
-}
-// Helper para obtener el año de un timestamp
-fun Long.toLocalYear(): Int {
-    val calendar = java.util.Calendar.getInstance()
-    calendar.timeInMillis = this
-    return calendar.get(java.util.Calendar.YEAR)
 }
 

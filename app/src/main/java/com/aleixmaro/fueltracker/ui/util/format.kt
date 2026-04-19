@@ -15,4 +15,10 @@ fun formatMoney(value: Double): String {
     return "%.2f €".format(value)
 }
 
+fun Long.toLocalYear(): Int {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = this
+    return calendar.get(Calendar.YEAR)
+}
+
 

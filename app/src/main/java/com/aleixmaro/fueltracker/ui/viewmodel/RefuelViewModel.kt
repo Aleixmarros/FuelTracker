@@ -14,12 +14,12 @@ class RefuelViewModel(private val repository: RefuelRepository) : ViewModel() {
 
     // StateFlow para exponer la lista de repostajes de forma reactiva
     private val _refuelList = MutableStateFlow<List<RefuelEntity>>(emptyList())
-    val refuelList: StateFlow<List<RefuelEntity>> =
+    val refuelList: StateFlow<List<RefuelEntity>?> =
         repository.getAllRefuels()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = emptyList()
+                initialValue = null
             )
     private val _editingRefuel = MutableStateFlow<RefuelEntity?>(null)
     val editingRefuel: StateFlow<RefuelEntity?> = _editingRefuel

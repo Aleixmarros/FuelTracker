@@ -7,7 +7,7 @@ import com.aleixmaro.fueltracker.data.local.entity.GlobalTotals
 import com.aleixmaro.fueltracker.data.local.entity.RefuelEntity
 import com.aleixmaro.fueltracker.data.local.entity.RefuelStats
 import com.aleixmaro.fueltracker.data.repository.RefuelRepository
-import com.aleixmaro.fueltracker.ui.viewmodel.model.GlobalStats
+import com.aleixmaro.fueltracker.ui.util.toLocalYear
 import kotlinx.coroutines.flow.*
 import kotlin.math.max
 
@@ -23,6 +23,13 @@ class StatsViewModel(
                 emptyList()
             )
 
+    private val _selectedYear = MutableStateFlow("Todos")
+    val selectedYear: StateFlow<String> = _selectedYear.asStateFlow()
+
+    fun updateYearFilter(year: String) {
+        _selectedYear.value = year
+    }
+
     /** ───────── DETALLE POR INTERVALO ───────── */
     val refuelStats: StateFlow<List<RefuelStats>> =
         refuelsFlow
@@ -35,18 +42,31 @@ class StatsViewModel(
 
     /** ───────── RESUMEN MEDIO ───────── */
     val globalAverages: StateFlow<GlobalAverages> =
-        refuelStats
-            .map { calculateAverages(it) }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                GlobalAverages(0.0, 0.0, 0.0)
-            )
+        combine(refuelStats, _selectedYear) { stats, year ->
+            val filtered = if (year == "Todos") stats
+            else {
+                val target = year.toInt()
+                stats.filter { target in it.fromDate.toLocalYear()..it.toDate.toLocalYear() }
+            }
+            calculateAverages(filtered)
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            GlobalAverages(0.0, 0.0, 0.0)
+        )
 
     /** ───────── TOTALES ───────── */
     val globalTotals: StateFlow<GlobalTotals> =
-        combine(refuelStats, refuelsFlow) { stats, refuels ->
-            calculateTotalsFromStats(stats, refuels)
+        combine(refuelStats, refuelsFlow, _selectedYear) { stats, refuels, year ->
+            val (fStats, fRefuels) = if (year == "Todos") {
+                stats to refuels
+            } else {
+                val target = year.toInt()
+                val fs = stats.filter { target in it.fromDate.toLocalYear()..it.toDate.toLocalYear() }
+                val fr = refuels.filter { it.fecha.toLocalYear() == target }
+                fs to fr
+            }
+            calculateTotalsFromStats(fStats, fRefuels)
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
@@ -58,55 +78,6 @@ class StatsViewModel(
     // ─────────────────────────────
     // LÓGICA DE NEGOCIO
     // ─────────────────────────────
-    private fun calculateGlobalStats(
-        list: List<RefuelEntity>
-    ): GlobalStats {
-
-        if (list.size < 2) return emptyStats()
-
-        val sorted = list.sortedBy { it.fecha }
-
-        var totalKm = 0
-        var totalLitros = 0.0
-        var totalDinero = 0.0
-        var totalDias = 0
-
-        for (i in 0 until sorted.size - 1) {
-            val actual = sorted[i]
-            val siguiente = sorted[i + 1]
-
-            val km = siguiente.kmCoche - actual.kmCoche
-            if (km <= 0) continue
-
-            val dias = max(
-                1,
-                ((siguiente.fecha - actual.fecha) / MILLIS_PER_DAY).toInt()
-            )
-
-            totalKm += km
-            totalLitros += actual.litros
-            totalDinero += actual.dinero
-            totalDias += dias
-        }
-
-        val consumoMedio = (totalLitros / totalKm) * 100
-        val kmMes = (totalKm.toDouble() / totalDias) * 30.44
-        val gastoMes = (totalDinero / totalDias) * 30.44
-
-        val precioMedioLitro =
-            sorted.dropLast(1).sumOf { it.precioGasolina } / (sorted.size - 1)
-
-        return GlobalStats(
-            consumoMedio = consumoMedio,
-            kmMes = kmMes,
-            gastoMes = gastoMes,
-            kmTotales = totalKm,
-            litrosTotales = totalLitros,
-            dineroTotal = totalDinero,
-            diasTotales = totalDias,
-            precioMedioLitro = precioMedioLitro
-        )
-    }
     fun calculateStats(refuels: List<RefuelEntity>): List<RefuelStats> {
         if (refuels.size < 2) return emptyList()
 
@@ -205,18 +176,6 @@ class StatsViewModel(
         )
     }
 
-
-
-    private fun emptyStats() = GlobalStats(
-        consumoMedio = 0.0,
-        kmMes = 0.0,
-        gastoMes = 0.0,
-        kmTotales = 0,
-        litrosTotales = 0.0,
-        dineroTotal = 0.0,
-        diasTotales = 0,
-        precioMedioLitro = 0.0
-    )
 
     companion object {
         private const val MILLIS_PER_DAY = 1000L * 60 * 60 * 24
