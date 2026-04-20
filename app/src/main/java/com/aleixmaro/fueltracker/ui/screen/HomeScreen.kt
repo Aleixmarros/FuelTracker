@@ -25,11 +25,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -106,6 +108,11 @@ fun HomeScreen(
     val literFilter = remember { mutableStateOf(0f..100f) }
     val kmFilter = remember { mutableStateOf(0f..500000f) }
     val dateFilter = remember { mutableStateOf(0f..System.currentTimeMillis().toFloat()) }
+    val filtersActive = remember { mutableStateOf(false) }
+    
+    // --- ESTADO DE ELIMINACIÓN ---
+    val showDeleteDialog = remember { mutableStateOf(false) }
+    val itemToDelete = remember { mutableStateOf<RefuelEntity?>(null) }
 
     // Límites absolutos para los sliders
     val currentRefuels = refuels
@@ -120,16 +127,14 @@ fun HomeScreen(
     val absMinDate = remember(currentRefuels) { currentRefuels?.minOfOrNull { it.fecha.toFloat() } ?: 0f }
     val absMaxDate = remember(currentRefuels) { currentRefuels?.maxOfOrNull { it.fecha.toFloat() } ?: System.currentTimeMillis().toFloat() }
 
-    // Inicializar filtros con límites absolutos la primera vez
-    val initialFiltersSet = remember { mutableStateOf(false) }
+    // Inicializar y mantener filtros sincronizados si no están activos
     androidx.compose.runtime.LaunchedEffect(currentRefuels) {
-        if (currentRefuels != null && currentRefuels.isNotEmpty() && !initialFiltersSet.value) {
+        if (currentRefuels != null && currentRefuels.isNotEmpty() && !filtersActive.value) {
             priceFilter.value = absMinPrice..absMaxPrice
             euroFilter.value = absMinEuros..absMaxEuros
             literFilter.value = absMinLiters..absMaxLiters
             kmFilter.value = absMinKm..absMaxKm
             dateFilter.value = absMinDate..absMaxDate
-            initialFiltersSet.value = true
         }
     }
 
@@ -140,6 +145,9 @@ fun HomeScreen(
     ) {
         currentRefuels?.filter { item ->
             val matchesYear = filterYear.value == "Todos" || item.fecha.toLocalYear().toString() == filterYear.value
+            
+            if (!filtersActive.value) return@filter matchesYear
+
             val matchesPrice = item.precioGasolina.toFloat() in priceFilter.value
             val matchesEuros = item.dinero.toFloat() in euroFilter.value
             val matchesLiters = item.litros.toFloat() in literFilter.value
@@ -295,13 +303,42 @@ fun HomeScreen(
                         RefuelItem(
                             item = item,
                             avgPrice = avgPrice,
-                            onEditClick = onItemClick
+                            onEditClick = onItemClick,
+                            onDeleteClick = {
+                                itemToDelete.value = it
+                                showDeleteDialog.value = true
+                            }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
         }
+    }
+
+    // --- DIÁLOGO DE CONFIRMACIÓN DE ELIMINACIÓN ---
+    if (showDeleteDialog.value && itemToDelete.value != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog.value = false },
+            title = { Text("Eliminar repostaje") },
+            text = { Text("¿Estás seguro de que deseas eliminar este repostaje? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        itemToDelete.value?.let { viewModel.deleteRecord(it) }
+                        showDeleteDialog.value = false
+                        itemToDelete.value = null
+                    }
+                ) {
+                    Text("Aceptar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     // --- BOTTOM SHEET DE FILTROS ---
@@ -348,11 +385,11 @@ fun HomeScreen(
                         .horizontalScroll(rememberScrollState())
                         .padding(8.dp)
                 ) {
-                    FilterRangeCard("Precio/L", priceFilter.value, absMinPrice..absMaxPrice, { priceFilter.value = it }, { "%.2f€".format(it) })
-                    FilterRangeCard("Litros", literFilter.value, absMinLiters..absMaxLiters, { literFilter.value = it }, { "%.1fL".format(it) })
-                    FilterRangeCard("€ Invertidos", euroFilter.value, absMinEuros..absMaxEuros, { euroFilter.value = it }, { "%.0f€".format(it) })
-                    FilterRangeCard("Kilómetros", kmFilter.value, absMinKm..absMaxKm, { kmFilter.value = it }, { "%.0f".format(it) })
-                    FilterRangeCard("Fecha", dateFilter.value, absMinDate..absMaxDate, { dateFilter.value = it }, { formatDate(it.toLong()) })
+                    FilterRangeCard("Precio/L", priceFilter.value, absMinPrice..absMaxPrice, { priceFilter.value = it; filtersActive.value = true }, { "%.2f€".format(it) })
+                    FilterRangeCard("Litros", literFilter.value, absMinLiters..absMaxLiters, { literFilter.value = it; filtersActive.value = true }, { "%.1fL".format(it) })
+                    FilterRangeCard("€ Invertidos", euroFilter.value, absMinEuros..absMaxEuros, { euroFilter.value = it; filtersActive.value = true }, { "%.0f€".format(it) })
+                    FilterRangeCard("Kilómetros", kmFilter.value, absMinKm..absMaxKm, { kmFilter.value = it; filtersActive.value = true }, { "%.0f".format(it) })
+                    FilterRangeCard("Fecha", dateFilter.value, absMinDate..absMaxDate, { dateFilter.value = it; filtersActive.value = true }, { formatDate(it.toLong()) })
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -360,11 +397,8 @@ fun HomeScreen(
                 TextButton(
                     onClick = {
                         filterYear.value = "Todos"
-                        priceFilter.value = absMinPrice..absMaxPrice
-                        euroFilter.value = absMinEuros..absMaxEuros
-                        literFilter.value = absMinLiters..absMaxLiters
-                        kmFilter.value = absMinKm..absMaxKm
-                        dateFilter.value = absMinDate..absMaxDate
+                        filtersActive.value = false
+                        // Los sliders se resetearán en el LaunchedEffect automáticamente
                     },
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
                 ) {
@@ -424,7 +458,8 @@ fun FilterRangeCard(
 fun RefuelItem(
     item: RefuelEntity,
     avgPrice: Double,
-    onEditClick: (Long) -> Unit
+    onEditClick: (Long) -> Unit,
+    onDeleteClick: (RefuelEntity) -> Unit
 ) {
     val expanded = remember { mutableStateOf(false) }
     val backgroundColor = getPriceColor(item.precioGasolina, avgPrice).copy(alpha = 0.12f)
@@ -487,13 +522,23 @@ fun RefuelItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = { onEditClick(item.id) }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Editar",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    Row {
+                        IconButton(onClick = { onEditClick(item.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            IconButton(onClick = { onDeleteClick(item) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Eliminar",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                     }
                 }
             }
