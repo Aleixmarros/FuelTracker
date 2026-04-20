@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,12 +26,9 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EuroSymbol
 import androidx.compose.material.icons.filled.LocalGasStation
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -43,9 +41,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -53,6 +48,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aleixmaro.fueltracker.data.local.entity.RefuelStats
+import com.aleixmaro.fueltracker.ui.component.YearWheelPicker
 import com.aleixmaro.fueltracker.ui.theme.getConsumptionColor
 import com.aleixmaro.fueltracker.ui.util.formatDate
 import com.aleixmaro.fueltracker.ui.util.toLocalYear
@@ -68,8 +64,7 @@ fun StatsScreen(
     val totals by statsViewModel.globalTotals.collectAsState()
     val refuelStats by statsViewModel.refuelStats.collectAsState()
 
-    // Estados del dropdown
-    var expanded by remember { mutableStateOf(false) }
+    // Estados del selector de año
     val selectedYear by statsViewModel.selectedYear.collectAsState()
 
     // Lista de años del 2025 al 2125
@@ -172,47 +167,28 @@ fun StatsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Detalle por intervalo",
+                        text = "Intervalos",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
                     )
-                    Box {
-                        AssistChip(
-                            onClick = { expanded = true },
-                            label = { Text(selectedYear) },
-                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        )
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Todos") },
-                                onClick = {
-                                    statsViewModel.updateYearFilter("Todos")
-                                    expanded = false
-                                }
-                            )
-                            years.forEach { year ->
-                                DropdownMenuItem(
-                                    text = { Text(year) },
-                                    onClick = {
-                                        statsViewModel.updateYearFilter(year)
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    
+                    // Selector de año "flotante" al lado del título
+                    YearWheelPicker(
+                        selectedYear = selectedYear,
+                        years = years,
+                        onYearSelected = { statsViewModel.updateYearFilter(it) },
+                        modifier = Modifier.widthIn(max = 250.dp) // Limitamos el ancho para que no pise el título
+                    )
                 }
             }
 
-// Mostrar intervalos filtrados o mensaje si no hay
+            // Mostrar intervalos filtrados o mensaje si no hay
             if (filteredStats.isEmpty()) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
