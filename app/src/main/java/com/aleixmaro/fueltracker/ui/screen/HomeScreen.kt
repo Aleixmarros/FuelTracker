@@ -5,10 +5,12 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
@@ -39,6 +42,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +54,7 @@ import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -80,7 +85,7 @@ enum class SortOption(val label: String) {
 
 enum class SortOrder { ASC, DESC }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     viewModel: RefuelViewModel,
@@ -348,7 +353,11 @@ fun HomeScreen(
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
-            Column(modifier = Modifier.padding(bottom = 32.dp)) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp)
+            ) {
                 Text(
                     "Filtros avanzados", 
                     style = MaterialTheme.typography.titleLarge, 
@@ -358,11 +367,12 @@ fun HomeScreen(
                 
                 // AÑO
                 Text("Filtrar por Año", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 16.dp))
-                Row(
+                FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val years = remember(currentRefuels) {
                         listOf("Todos") + (currentRefuels?.map { it.fecha.toLocalYear().toString() }?.distinct()?.sortedDescending() ?: emptyList())
@@ -372,24 +382,44 @@ fun HomeScreen(
                             selected = filterYear.value == year,
                             onClick = { filterYear.value = year },
                             label = { Text(year) },
-                            modifier = Modifier.padding(end = 8.dp)
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = filterYear.value == year,
+                                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                selectedBorderColor = MaterialTheme.colorScheme.primary,
+                                borderWidth = 1.dp,
+                                selectedBorderWidth = 1.5.dp
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
                 }
 
-                // FILTROS DE RANGO (Scroll Horizontal)
+                // FILTROS DE RANGO
                 Text("Ajustar rangos", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 16.dp))
-                Row(
+                FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(8.dp)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = 2
                 ) {
-                    FilterRangeCard("Precio/L", priceFilter.value, absMinPrice..absMaxPrice, { priceFilter.value = it; filtersActive.value = true }, { "%.2f€".format(it) })
-                    FilterRangeCard("Litros", literFilter.value, absMinLiters..absMaxLiters, { literFilter.value = it; filtersActive.value = true }, { "%.1fL".format(it) })
-                    FilterRangeCard("€ Invertidos", euroFilter.value, absMinEuros..absMaxEuros, { euroFilter.value = it; filtersActive.value = true }, { "%.0f€".format(it) })
-                    FilterRangeCard("Kilómetros", kmFilter.value, absMinKm..absMaxKm, { kmFilter.value = it; filtersActive.value = true }, { "%.0f".format(it) })
-                    FilterRangeCard("Fecha", dateFilter.value, absMinDate..absMaxDate, { dateFilter.value = it; filtersActive.value = true }, { formatDate(it.toLong()) })
+                    val fuelColor = Color(0xFFF44336) // Rojo/Naranja Gasolina
+                    val moneyColor = Color(0xFF4CAF50) // Verde Dinero
+                    val distanceColor = Color(0xFF9C27B0) // Púrpura Distancia
+                    val dateColor = Color(0xFF03A9F4) // Azul Fecha
+                    
+                    FilterRangeCard("Precio/L", priceFilter.value, absMinPrice..absMaxPrice, { priceFilter.value = it; filtersActive.value = true }, { "%.2f€".format(it) }, Modifier.weight(1f), MaterialTheme.colorScheme.primary)
+                    FilterRangeCard("Litros", literFilter.value, absMinLiters..absMaxLiters, { literFilter.value = it; filtersActive.value = true }, { "%.1fL".format(it) }, Modifier.weight(1f), fuelColor)
+                    FilterRangeCard("€ Invertidos", euroFilter.value, absMinEuros..absMaxEuros, { euroFilter.value = it; filtersActive.value = true }, { "%.0f€".format(it) }, Modifier.weight(1f), moneyColor)
+                    FilterRangeCard("Kilómetros", kmFilter.value, absMinKm..absMaxKm, { kmFilter.value = it; filtersActive.value = true }, { "%.0f".format(it) }, Modifier.weight(1f), distanceColor)
+                    FilterRangeCard("Fecha", dateFilter.value, absMinDate..absMaxDate, { dateFilter.value = it; filtersActive.value = true }, { formatDate(it.toLong()) }, Modifier.weight(1f), dateColor)
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -415,7 +445,9 @@ fun FilterRangeCard(
     value: ClosedFloatingPointRange<Float>,
     range: ClosedFloatingPointRange<Float>,
     onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
-    formatValue: (Float) -> String
+    formatValue: (Float) -> String,
+    modifier: Modifier = Modifier,
+    baseColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val safeRange = remember(range) {
         if (range.start >= range.endInclusive) {
@@ -430,25 +462,39 @@ fun FilterRangeCard(
     }
 
     Card(
-        modifier = Modifier
-            .width(260.dp)
-            .padding(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-        shape = RoundedCornerShape(20.dp)
+        modifier = modifier
+            .padding(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = baseColor.copy(alpha = 0.08f)
+        ),
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(
+            width = 1.2.dp,
+            color = baseColor.copy(alpha = 0.25f)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp,
+            pressedElevation = 2.dp
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = baseColor)
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(formatValue(safeValue.start), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                Text(formatValue(safeValue.endInclusive), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Text(formatValue(safeValue.start), style = MaterialTheme.typography.labelSmall, color = baseColor.copy(alpha = 0.8f))
+                Text(formatValue(safeValue.endInclusive), style = MaterialTheme.typography.labelSmall, color = baseColor.copy(alpha = 0.8f))
             }
             RangeSlider(
                 value = safeValue,
                 onValueChange = onValueChange,
                 valueRange = safeRange,
                 enabled = range.start < range.endInclusive,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = baseColor,
+                    activeTrackColor = baseColor,
+                    inactiveTrackColor = baseColor.copy(alpha = 0.2f)
+                )
             )
         }
     }
